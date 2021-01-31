@@ -96,3 +96,25 @@ Default Security Groups
     Enterprise Key Admins - Members of this group can perform administrative actions on key objects within the forest.
     Cloneable Domain Controllers - Members of this group that are domain controllers may be cloned.
     RAS and IAS Servers - Servers in this group can access remote access properties of users
+    
+    
+Trusts + Policies
+------------------
+Trusts are a mechanism in place for users in the network to gain access to other resource in the domain.
+Policies are a very big part of Active Directory, they dictagte how the server operates and what rules it will and will not follow
+
+Active Directory Domain Services + Authentication
+-------------------------------------------------
+- The Active Directory domain services are the core functions of an Active Directory network, they allow for management of the domain, security certificates, LDAPs and much more. They are services that the domain controller provides to the rest of the domain or tree. There is a wide ranges of various services that can be added to a domain controller.
+*LDAP - Lightweight Directory Access Protocol; provides communication between applications and directory services
+*Certificate services
+*DNS,LLMNR,NBT-NS
+
+Domain Authentication Overview
+===============================
+- The most important part of  Active Directory - as well as most vulnerable part of AD - is the authentication protocols set in place. There are mainly two types of Authentication in AD:
+i. Kerberos
+- The default authentication service for AD uses ticket-granting tickets and service tickets to authenticate users and give users access to other resources across the domain.
+
+ii. NTLM
+- A default windows authentication protocol which uses an encrypted challenge/response protocol
