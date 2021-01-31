@@ -113,6 +113,7 @@ Active Directory Domain Services + Authentication
 Domain Authentication Overview
 ===============================
 - The most important part of  Active Directory - as well as most vulnerable part of AD - is the authentication protocols set in place. There are mainly two types of Authentication in AD:
+
 i. Kerberos
 - The default authentication service for AD uses ticket-granting tickets and service tickets to authenticate users and give users access to other resources across the domain.
 
